@@ -52,3 +52,27 @@ class Convolution:
             raise RuntimeError('Unexpected input dimensions')
 
         return self.f_t_conv(signal)
+
+
+class Pooling:
+    def __init__(self, pooling_shape):
+        pass
+        
+    def P(self, layer_input):
+        """
+        Do max-abs pooling and update switches
+        """
+        pass
+
+    def __call__(self, layer_input):
+        """
+        Use switches to select values
+        """
+        pass
+
+    def T(self, layer_input):
+        """
+        Do transpose pooling using updated switches
+        """
+        pass
+

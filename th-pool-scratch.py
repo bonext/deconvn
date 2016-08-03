@@ -81,6 +81,18 @@ pool_argmax=theano.function(
     ]
 )
 
-absd = pool_argmax(prep_pool(input))
+prep = prep_pool(input)
+print prep
 
-print prepd
+ids = pool_argmax(prep)
+print ids
+
+p_in = T.fmatrix()
+rows = T.arange(p_in.shape[0])
+pool_res = p_in[rows, ids]
+do_pooling = theano.function(
+    [p_in],
+    pool_res
+)
+
+print do_pooling(prep)
