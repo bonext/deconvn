@@ -7,7 +7,7 @@ floatX = theano.config.floatX
 
 
 
-input = np.random.rand(2, 2, 4, 6).astype(theano.config.floatX)
+input = np.random.randn(2, 2, 4, 6).astype(theano.config.floatX)
 in_shape = input.shape
 in_batch_sz, in_channels, in_h, in_w = input.shape
 
@@ -65,3 +65,22 @@ prep_pool = theano.function(
 prepd = prep_pool(input)
 
 print prepd.shape
+
+# now assuming we can do the prep reshape
+# result is 2d, so now I need abs+argmax to get switching positions
+# I also need to select using this switching positions
+
+pool_in = T.fmatrix('pool_in')
+pooling_locations = T.argmax(abs(pool_in), axis=1)
+th_pool_ids=theano.shared(np.zeros(12, dtype=np.int64))
+pool_argmax=theano.function(
+    [pool_in],
+    pooling_locations,
+    updates=[
+        (th_pool_ids, pooling_locations)
+    ]
+)
+
+absd = pool_argmax(prep_pool(input))
+
+print prepd
