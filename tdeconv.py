@@ -2,6 +2,7 @@ import numpy as np
 
 import theano
 import theano.tensor as T
+from theano.tensor.nnet.neighbours import images2neibs, neibs2images
 
 class Convolution:
     """
@@ -56,11 +57,13 @@ class Convolution:
 
 class Pooling:
     def __init__(self, pooling_shape):
-        pass
-        
+        self.pooling_shape = pooling_shape
+        self.pool_ch, self.pool_w, self.pool_h = pooling_shape
+
     def P(self, layer_input):
         """
         Do max-abs pooling and update switches
+        layer_input: 4d floatX theano tensor
         """
         pass
 
