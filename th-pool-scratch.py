@@ -1,98 +1,76 @@
 import numpy as np
-
 import theano
-from theano.tensor.nnet.neighbours import images2neibs
 import theano.tensor as T
+from theano.tensor.nnet.neighbours import images2neibs
 floatX = theano.config.floatX
 
+from deconv import Pooling
+
+# theano pooling code
+# pooling layer input
+# has size of B x C x H x W
+t_pool_input = T.tensor4(name='pool_input') # pool input batch x channels x H x W
+# spatial pooling dimensions
+# has size h x w
+t_sp_pool_dims = T.lvector(name='spatial_pool_dims')
+# channel pooling dimensions
+# scalar
+t_ch_pool_sz = T.lscalar(name='channel_pool_size')
+
+# spatial pooling
+t_sp_pooled = images2neibs(t_pool_input, t_sp_pool_dims)
+# spatial pooling output shape
+# has size (B * C * H/h * W/w) x (h*w)
+t_sp_pooled_dims = t_sp_pooled.shape
+
+# lines per channel
+# H*W / (h*w)
+t_lpc = T.prod(t_pool_input.shape[-2:])//T.prod(t_sp_pool_dims)
+# shape to collect channels
+t_ch_pool_prep_dims_1 = T.stack([t_sp_pooled_dims[0]//t_lpc, t_lpc, t_sp_pooled_dims[1]])
+
+# preparing pooling by channels
+# reshape to collect channels in a separate dimension
+t_ch_pool_prep_1 = T.reshape(t_sp_pooled, t_ch_pool_prep_dims_1)
+t_ch_pool_prep_2 = T.shape_padleft(T.transpose(t_ch_pool_prep_1, [1, 0, 2]))
+
+# prepare for channel pooling
+t_ch_pool_dims = T.stack([t_ch_pool_sz, t_ch_pool_prep_dims_1[-1]])
+t_pool_ready = images2neibs(t_ch_pool_prep_2, t_ch_pool_dims)
+
+# argmax-pooling
+t_sel_cols = T.argmax(abs(t_pool_ready), axis=1)
+t_rows = T.arange(t_pool_ready.shape[0])
+t_pooled_raw = t_pool_ready[t_rows, t_sel_cols]
+
+# output channels
+t_out_ch = t_pool_input.shape[1]//t_ch_pool_sz
+t_out_h = t_pool_input.shape[2]//t_sp_pool_dims[0]
+t_out_w = t_pool_input.shape[3]//t_sp_pool_dims[1]
+
+# lines per spatial block
+t_lpsb = t_out_ch * t_pool_input.shape[0]
+t_pool_out_prep_dims_1 = T.stack([t_pooled_raw.shape[0]//t_lpsb, t_lpsb])
+t_pool_out_prep_1 = T.reshape(t_pooled_raw, t_pool_out_prep_dims_1).transpose()
+t_pool_out_prep_dims_2 = T.stack([t_pool_input.shape[0], t_out_ch, t_out_h, t_out_w])
+t_pool_out = T.reshape(t_pool_out_prep_1, t_pool_out_prep_dims_2)
 
 
-input = np.random.randn(2, 2, 4, 6).astype(theano.config.floatX)
-in_shape = input.shape
-in_batch_sz, in_channels, in_h, in_w = input.shape
+## Check
+pool_in = np.random.randn(7, 6, 8, 12).astype(floatX)
+pool_in *= 100
+pool_in = np.round(pool_in)
+pool_in /= 100
+pool_sp_shape = np.array([2, 4], dtype=np.int64)
+ch_pool_sz = 3
 
-# lets do it all in one step
-pool_shape = [2, 2, 3] # channels x h x w
-pool_ch, pool_h, pool_w = pool_shape
+pool_out = t_pool_out.eval({
+        t_pool_input: pool_in,
+        t_sp_pool_dims: pool_sp_shape,
+        t_ch_pool_sz: ch_pool_sz
+    })
 
-# Prepare all shapes
-# images2neibs creates an array of size
-# something x pool_h*pool_w
-sp_pool_w = pool_h * pool_w
-sp_pool_h = input.size / sp_pool_w
+P = Pooling(pool_in[0].shape, (ch_pool_sz,)+tuple(pool_sp_shape))
 
-# spatial lines per channel - can be prepared in advance
-lpc = np.prod(input.shape[-2:])/np.prod(pool_shape[-2:])
-
-# reshape to this for channel pooling
-ch_pool_shape = (sp_pool_h/lpc, lpc, sp_pool_w) # (sp_pool.shape[0]/lpc, lpc, sp_pool.shape[-1])
-
-# shared variables
-s_pool_sp_shape = theano.shared(np.array([pool_h, pool_w], dtype=np.int64))
-s_pool_ch_shape = theano.shared(np.array([pool_ch, sp_pool_w], dtype=np.int64))
-s_grouped_chs_shape = theano.shared(np.array(ch_pool_shape, dtype=np.int64))
-
-# theano variables
-th_pool_in = T.tensor4() # pool input batch x channels x H x W
-th_pool_sp_shape = T.lvector() # spatial pooling shape
-th_pool_ch_shape = T.lvector() # channel pooling shape
-th_grouped_chs_shape = T.lvector() # shape ready for channel pooling
-
-# building theano expression for pooling prep
-# collect spatial neighbourhoods
-sp_pool = images2neibs(th_pool_in, th_pool_sp_shape)
-
-# collect channels in a separate dimension
-sp_collect_chans = T.reshape(sp_pool, th_grouped_chs_shape, ndim=3)
-next_in = T.shape_padleft(T.transpose(sp_collect_chans, [1,0,2]))
-
-# pool by channels
-pooling_chunks = images2neibs(next_in, th_pool_ch_shape)
-
-# now each line of pooling chunks can be max-abs and argmax-abs
-# we will need reshape to get actual pooling result from it
-prep_pool = theano.function(
-    [th_pool_in],
-    pooling_chunks,
-    givens=[
-        (th_pool_sp_shape, s_pool_sp_shape),
-        (th_pool_ch_shape, s_pool_ch_shape),
-        (th_grouped_chs_shape, s_grouped_chs_shape)
-    ]
-)
-
-# let's tr it
-prepd = prep_pool(input)
-
-print prepd.shape
-
-# now assuming we can do the prep reshape
-# result is 2d, so now I need abs+argmax to get switching positions
-# I also need to select using this switching positions
-
-pool_in = T.fmatrix('pool_in')
-pooling_locations = T.argmax(abs(pool_in), axis=1)
-th_pool_ids=theano.shared(np.zeros(12, dtype=np.int64))
-pool_argmax=theano.function(
-    [pool_in],
-    pooling_locations,
-    updates=[
-        (th_pool_ids, pooling_locations)
-    ]
-)
-
-prep = prep_pool(input)
-print prep
-
-ids = pool_argmax(prep)
-print ids
-
-p_in = T.fmatrix()
-rows = T.arange(p_in.shape[0])
-pool_res = p_in[rows, ids]
-do_pooling = theano.function(
-    [p_in],
-    pool_res
-)
-
-print do_pooling(prep)
+for ix in range(pool_in.shape[0]):
+    print np.all(pool_out[ix] == P.P(pool_in[ix]))
