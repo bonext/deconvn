@@ -2,9 +2,15 @@ import numpy as np
 import theano
 import theano.tensor as T
 from theano.tensor.nnet.neighbours import neibs2images
-floatX = theano.config.floatX
 
 def t_mk_unpool(t_unpool_input, t_pool_shape, t_switches):
+    """
+    Make theano graph for unpooling with known switches
+    :param t_unpool_input:
+    :param t_pool_shape:
+    :param t_switches:
+    :return: Unpooled result
+    """
     # sizes
     t_batch_sz = t_unpool_input.shape[0]
     # input
