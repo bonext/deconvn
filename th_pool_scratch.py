@@ -46,7 +46,7 @@ def t_mk_pooling(t_pool_input, t_sp_pool_dims, t_ch_pool_sz):
     t_pool_out_prep_dims_2 = T.stack([t_pool_input.shape[0], t_out_ch, t_out_h, t_out_w])
     t_pool_out = T.reshape(t_pool_out_prep_1, t_pool_out_prep_dims_2)
 
-    return (t_pool_out, t_sel_cols, t_pooled_raw)
+    return (t_pool_out, t_sel_cols, t_pool_ready.shape)
 
 if __name__ == "__main__":
     ## Check
