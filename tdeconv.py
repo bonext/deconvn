@@ -2,6 +2,7 @@ import numpy as np
 
 import theano
 import theano.tensor as T
+from theano.tensor.nnet.neighbours import images2neibs, neibs2images
 
 class Convolution:
     """
@@ -52,3 +53,29 @@ class Convolution:
             raise RuntimeError('Unexpected input dimensions')
 
         return self.f_t_conv(signal)
+
+
+class Pooling:
+    def __init__(self, pooling_shape):
+        self.pooling_shape = pooling_shape
+        self.pool_ch, self.pool_w, self.pool_h = pooling_shape
+
+    def P(self, layer_input):
+        """
+        Do max-abs pooling and update switches
+        layer_input: 4d floatX theano tensor
+        """
+        pass
+
+    def __call__(self, layer_input):
+        """
+        Use switches to select values
+        """
+        pass
+
+    def T(self, layer_input):
+        """
+        Do transpose pooling using updated switches
+        """
+        pass
+
