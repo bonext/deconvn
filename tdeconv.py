@@ -2,8 +2,8 @@ import numpy as np
 
 import theano
 import theano.tensor as T
-from theano.tensor.nnet.neighbours import images2neibs, neibs2images
 
+from tdeconv_utils import t_mk_conv, t_mk_conv_transpose
 class Convolution:
     """
     Just a regular convolution with given filters
@@ -13,21 +13,19 @@ class Convolution:
         :param filters_shape: filter_channels x num_feature_maps x filter_h x filter_w
         """
         self.filters_shape = filters_shape
-        self.t_filters_shape = filters_shape[2:0:-1]+filters_shape[2:]
-        self.filter_channels, self.num_feature_maps, self.filter_h, self.filter_w = filters_shape
         
         # creating theano functions and stuff
         self.filters = theano.shared(np.zeros(self.filters_shape, dtype=theano.config.floatX))
-        in4 = T.tensor4(dtype=theano.config.floatX)
-        f4 = T.tensor4(dtype=theano.config.floatX)
+        in4 = T.tensor4(name='conv_in', dtype=theano.config.floatX)
+        f4 = T.tensor4(name='filters', dtype=theano.config.floatX)
         self.f_conv = theano.function(
             [in4],
-            T.nnet.conv2d(in4, f4, (1, self.num_feature_maps, None, None), filters_shape, 'valid'),
+            t_mk_conv(in4, f4),
             givens=[(f4, self.filters)]
             )
         self.f_t_conv = theano.function(
             [in4],
-            T.nnet.conv2d(in4, f4.dimshuffle(1,0,2,3), (1, self.filter_channels, None, None), self.t_filters_shape, 'full', filter_flip=False),
+            t_mk_conv_transpose(in4, f4),
             givens=[(f4, self.filters)]
             )
 

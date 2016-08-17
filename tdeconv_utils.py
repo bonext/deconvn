@@ -2,6 +2,35 @@ from theano import tensor as T
 from theano.tensor.nnet.neighbours import images2neibs, neibs2images
 
 
+"""
+
+Convolution utilities
+
+"""
+
+
+def t_mk_conv(t_in, t_filters):
+    t_batch_sz = t_in.shape[0]
+    t_in_ch = t_in.shape[1]
+    t_conv_out = T.nnet.conv2d(t_in, t_filters, border_mode='valid')
+    return t_conv_out
+
+
+def t_mk_conv_transpose(t_in, t_filters):
+    t_in_ch = t_in.shape[1]
+    t_batch_sz = t_in.shape[0]
+    t_filters_shape = t_filters.shape
+    t_fs_transposed = t_filters.dimshuffle(1, 0, 2, 3)
+    t_conv_out = T.nnet.conv2d(t_in, t_fs_transposed, border_mode='full', filter_flip=False)
+    return t_conv_out
+
+
+"""
+
+Pooling utilities
+
+"""
+
 def t_mk_pool_ready(t_pool_input, t_pool_shape):
     """
     Prepare pooling input

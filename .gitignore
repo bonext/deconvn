@@ -2,7 +2,7 @@
 Theano/
 
 # Papers go here, maybe will upload later?
-doc/
+docs/
 
 # Dumb nix tempfiles
 *~
