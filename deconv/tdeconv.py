@@ -3,6 +3,47 @@ import numpy as np
 import theano
 import theano.tensor as T
 
+
+class Model:
+    def __init__(self):
+        self.layers = []
+        self.filters = []
+        self.train_layers = []
+
+    def add(self, layer):
+        # populate self.filters
+        # populate self.features ?
+        pass
+
+    def compile(self):
+        # populate self.train_layers
+        pass
+
+    def fit(self, data, nb_epochs):
+        switches = []
+        for l in range(len(self.train_layers)):
+            layer = self.train_layers[l]
+            # init filters/features
+            for epoch in range(1, nb_epochs+1):
+                for y in data:
+                    layer.fit_features(y, self.filters, switches)
+                layer.fit_filters(self.filters, switches)
+            switches.append(layer.get_switches())
+            self.filters.append(layer.get_filters())
+
+    def __call__(self, y):
+        # inference
+        switches = []
+        features = []
+        for l in range(len(self.train_layers)):
+            layer = self.train_layers[l]
+            # init filters/features
+            layer.fit_features(y, self.filters, switches)
+            switches.append(layer.get_switches())
+            features.append(layer.get_features())
+        return features
+
+
 from tdeconv_utils import t_mk_conv, t_mk_conv_transpose
 class Convolution:
     """
