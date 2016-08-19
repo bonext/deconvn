@@ -4,7 +4,6 @@ import numpy as np
 import theano
 import theano.tensor as T
 
-
 class TestTheanoConvolutions(object):
     def setUp(self):
         self.filters = np.array(
@@ -20,7 +19,7 @@ class TestTheanoConvolutions(object):
 
     def test_theano_convolution(self):
         # how to use t_mk_conv
-        from tdeconv_utils import t_mk_conv
+        from deconv.tdeconv_utils import t_mk_conv
         in4 = T.tensor4(name='conv_in', dtype=theano.config.floatX)
         f4 = T.tensor4(name='filters', dtype=theano.config.floatX)
         f_conv = theano.function(
@@ -50,7 +49,7 @@ class TestTheanoConvolutions(object):
 
     def test_theano_transposed_convolution(self):
         # how to use t_mk_conv_transpose
-        from tdeconv_utils import t_mk_conv_transpose
+        from deconv.tdeconv_utils import t_mk_conv_transpose
         in4 = T.tensor4(name='conv_in', dtype=theano.config.floatX)
         f4 = T.tensor4(name='filters', dtype=theano.config.floatX)
         f_t_conv = theano.function(
