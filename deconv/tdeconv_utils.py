@@ -185,3 +185,11 @@ def t_mk_unpooling(t_unpool_input, t_pool_shape, t_switches, t_orig_shape):
     t_unpool_out = t_unpool_out_padded[:t_batch_sz, :t_out_ch, :t_out_h, :t_out_w]
 
     return t_unpool_out
+
+def infer_conv_shapes(y_shape, f_shape_short):
+    filter_shape = (f_shape_short[0], y_shape[1]) + f_shape_short[1:]
+    feat_shape = (y_shape[0], f_shape_short[0], y_shape[2]+f_shape_short[1]-1, y_shape[3]+f_shape_short[2]-1)
+    return filter_shape, feat_shape
+
+def infer_pool_shape(z_shape, p_shape):
+    return (z_shape[0],) + tuple(map(lambda (x, y): (x+y-1)/y, zip(z_shape[1:], p_shape)))

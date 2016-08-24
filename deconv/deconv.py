@@ -11,13 +11,34 @@ class Model:
         self.train_layers = []
 
     def add(self, layer):
-        # populate self.filters
-        # populate self.features ?
-        pass
+        if len(self.layers) == 0:
+            assert layer.input_shape is not None
+            self.layers.append(layer)
+        else:
+            layer.infer_shapes(self.layers[-1].output_shape)
+            self.layers.append(layer)
 
     def compile(self):
-        # populate self.train_layers
-        pass
+        scheme = map(lambda l: l.kind, self.layers)
+        ix = 0
+        self.train_layers = []
+        while ix < len(scheme):
+            if ix == len(scheme) - 1:
+                # final layer
+                self.train_layers.append(self.layers[:ix + 1])
+                ix += 1
+                continue
+            if scheme[ix] == 'P':
+                # I process pooling together with previous conv
+                ix += 1
+                continue
+            if scheme[ix + 1] == 'P':
+                # add
+                self.train_layers.append(self.layers[:ix + 2])
+                ix += 2
+            else:
+                self.train_layers.append(self.layers[:ix + 1])
+                ix += 1
 
     def fit(self, data, nb_epochs):
         switches = []
